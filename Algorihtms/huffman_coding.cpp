@@ -1,154 +1,98 @@
-// C++ program for Huffman Coding
-#include <cstdlib>
 #include <iostream>
+#include <queue>
+#include <map>
+#include <string>
 #include <vector>
-using namespace std;
 
-#define MAX_TREE_HT 100
+	using namespace std;
 
-struct MinHeapNode {
-	char data;
-	unsigned freq;
-	struct MinHeapNode *left, *right;
-};
-struct MinHeap {
-	unsigned size;
-	unsigned capacity;
-	struct MinHeapNode** array;
-};
-struct MinHeapNode* newNode(char data, unsigned freq){
-	struct MinHeapNode* temp = (struct MinHeapNode*)malloc(sizeof(struct MinHeapNode));
-	temp->left = temp->right = NULL;
-	temp->data = data;
-	temp->freq = freq;
-	return temp;
-}
-struct MinHeap* createMinHeap(unsigned capacity){
-	struct MinHeap* minHeap = (struct MinHeap*)malloc(sizeof(struct MinHeap));
-	minHeap->size = 0;
-	minHeap->capacity = capacity;
-	minHeap->array = (struct MinHeapNode**)malloc(minHeap->capacity * sizeof(struct MinHeapNode*));
-	return minHeap;
-}
-void swapMinHeapNode(struct MinHeapNode** a,struct MinHeapNode** b){
-	struct MinHeapNode* t = *a;
-	*a = *b;
-	*b = t;
-}
-void minHeapify(struct MinHeap* minHeap, int idx){
-	int smallest = idx;
-	int left = 2 * idx + 1;
-	int right = 2 * idx + 2;
-	if (left < minHeap->size
-		&& minHeap->array[left]->freq
-			< minHeap->array[smallest]->freq)
-		smallest = left;
-	if (right < minHeap->size
-		&& minHeap->array[right]->freq
-			< minHeap->array[smallest]->freq)
-		smallest = right;
-	if (smallest != idx) {
-		swapMinHeapNode(&minHeap->array[smallest],&minHeap->array[idx]);
-		minHeapify(minHeap, smallest);
+	struct HuffmanNode
+	{
+		char data;
+		unsigned frequency;
+		HuffmanNode *left;
+		HuffmanNode *right;
+
+		HuffmanNode(char data, unsigned frequency)
+		{
+			this->data = data;
+			this->frequency = frequency;
+			left = right = nullptr;
+		}
+	};
+
+	struct CompareNodes
+	{
+		bool operator()(HuffmanNode *left, HuffmanNode *right)
+		{
+			return left->frequency > right->frequency;
+		}
+	};
+
+	void generateHuffmanCodes(const string &input);
+	void printHuffmanCodes(HuffmanNode * root, string code);
+
+	int main(){
+		string input;
+		cout << "Enter a string: ";
+		cin >> input;
+
+		generateHuffmanCodes(input);
+
+		return 0;
 	}
-}
-int isSizeOne(struct MinHeap* minHeap){
-	return (minHeap->size == 1);
-}
-struct MinHeapNode* extractMin(struct MinHeap* minHeap){
-	struct MinHeapNode* temp = minHeap->array[0];
-	minHeap->array[0] = minHeap->array[minHeap->size - 1];
-	--minHeap->size;
-	minHeapify(minHeap, 0);
-	return temp;
-}
-void insertMinHeap(struct MinHeap* minHeap,struct MinHeapNode* minHeapNode){
-	++minHeap->size;
-	int i = minHeap->size - 1;
-	while (i&& minHeapNode->freq< minHeap->array[(i - 1) / 2]->freq) {
-		minHeap->array[i] = minHeap->array[(i - 1) / 2];
-		i = (i - 1) / 2;
+
+	void generateHuffmanCodes(const string &input){
+		map<char, int> frequencyMap;
+
+		// Calculate character frequencies
+		for (char c : input)
+		{
+			frequencyMap[c]++;
+		}
+
+		// Create a priority queue for Huffman nodes
+		priority_queue<HuffmanNode *, vector<HuffmanNode *>, CompareNodes> minHeap;
+
+		// Create a Huffman node for each character and add it to the minHeap
+		for (const auto &pair : frequencyMap)
+		{
+			minHeap.push(new HuffmanNode(pair.first, pair.second));
+		}
+
+		// Build the Huffman tree
+		while (minHeap.size() > 1)
+		{
+			HuffmanNode *left = minHeap.top();
+			minHeap.pop();
+
+			HuffmanNode *right = minHeap.top();
+			minHeap.pop();
+
+			HuffmanNode *mergedNode = new HuffmanNode('s', left->frequency + right->frequency);
+			mergedNode->left = left;
+			mergedNode->right = right;
+
+			minHeap.push(mergedNode);
+		}
+
+		// Traverse the Huffman tree and print codes
+		HuffmanNode *root = minHeap.top();
+		string code = "";
+		cout << "Huffman Codes:\n";
+		printHuffmanCodes(root, code);
 	}
-	minHeap->array[i] = minHeapNode;
-}
-void buildMinHeap(struct MinHeap* minHeap){
-	int n = minHeap->size - 1;
-	int i;
-	for (i = (n - 1) / 2; i >= 0; --i)
-		minHeapify(minHeap, i);
-}
-void printArr(int arr[], int n)
-{
-	int i;
-	for (i = 0; i < n; ++i)
-		cout << arr[i];
-	cout << "\n";
-}
-int isLeaf(struct MinHeapNode* root){
-	return !(root->left) && !(root->right);
-}
-struct MinHeap* createAndBuildMinHeap(char data[],int freq[], int size){
-	struct MinHeap* minHeap = createMinHeap(size);
-	for (int i = 0; i < size; ++i)
-    minHeap->array[i] = newNode(data[i], freq[i]);
-	minHeap->size = size;
-	buildMinHeap(minHeap);
-	return minHeap;
-}
-struct MinHeapNode* buildHuffmanTree(char data[],int freq[], int size){
-	struct MinHeapNode *left, *right, *top;
-	struct MinHeap* minHeap = createAndBuildMinHeap(data, freq, size);
-	while (!isSizeOne(minHeap)) {
-		left = extractMin(minHeap);
-		right = extractMin(minHeap);
-		top = newNode('$', left->freq + right->freq);
-		top->left = left;
-		top->right = right;
-		insertMinHeap(minHeap, top);
+
+	void printHuffmanCodes(HuffmanNode * root, string code)
+	{
+		if (!root)
+			return;
+
+		if (root->data != 's')
+		{
+			cout << root->data << ": " << code << "\n";
+		}
+
+		printHuffmanCodes(root->left, code + "0");
+		printHuffmanCodes(root->right, code + "1");
 	}
-	return extractMin(minHeap);
-}
-void printCodes(struct MinHeapNode* root, int arr[],int top){
-	if (root->left) {
-		arr[top] = 0;
-		printCodes(root->left, arr, top + 1);
-	}
-	if (root->right) {
-		arr[top] = 1;
-		printCodes(root->right, arr, top + 1);
-	}
-	if (isLeaf(root)) {
-		cout << root->data << ": ";
-		printArr(arr, top);
-	}
-}
-void HuffmanCodes(char data[], int freq[], int size){
-	struct MinHeapNode* root= buildHuffmanTree(data, freq, size);
-	int arr[MAX_TREE_HT], top = 0;
-	printCodes(root, arr, top);
-}
-int main(){
-    string line;
-    cout<<"Enter the line: ";
-    cin>>line;
-    int count = 0;
-    vector<int> freq={};
-	vector<char> arr={};
-    for(int i=0;i<line.length();i++){
-        arr.push_back(line[i]);
-        for(int j=i+1;j<line.length();j++){
-            if(i==j){
-                count++;
-            }
-        }
-        freq.push_back(count);
-    }
-	for(int i=0;i<arr.size();i++){
-        cout<<arr[i]<<endl;
-    }
-    for(int i=0;i<freq.size();i++){
-        cout<<freq[i]<<endl;
-    }
-	//HuffmanCodes(arr, freq, size);
-	return 0;
-}
